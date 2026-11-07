@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Bot, Users, Swords, Play, Trophy, Clock3, Lock, ShieldAlert, Sparkles, Video, CheckCircle2 } from "lucide-react";
 import { THEMES } from "../../constants/themes";
 import { PIECE_STYLES } from "../../constants/pieces";
@@ -6,6 +6,7 @@ import { PRESETS } from "../../constants/presets";
 import PieceIcon from "../Chessboard/PieceIcon";
 import GoogleAdModal from "../Ads/GoogleAdModal";
 import OnlineRoulette from "../Matchmaking/OnlineRoulette";
+import CustomVariantSelect from "../Common/CustomVariantSelect";
 import { isVariationUnlocked, getRemainingTimeString } from "../../utils/adUnlockManager";
 
 export default function Home({ onStart, settings, setSettings, onAuth, user, onOpenChallengeSearch }) {
@@ -101,6 +102,27 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
       opponent: matchedOpponent
     });
   };
+
+  const boardOptions = useMemo(
+    () =>
+      Object.keys(THEMES).map((key) => ({
+        id: key,
+        label: THEMES[key].label,
+        light: THEMES[key].light,
+        dark: THEMES[key].dark
+      })),
+    []
+  );
+
+  const pieceOptions = useMemo(
+    () =>
+      PIECE_STYLES.map((s) => ({
+        id: s.id,
+        label: s.label,
+        desc: s.desc
+      })),
+    []
+  );
 
   const isCurrentBoardUnlocked = isVariationUnlocked("board", board);
   const isCurrentPieceUnlocked = isVariationUnlocked("piece", piece);
@@ -271,91 +293,31 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
           <div className="empty-field-slot" />
         </div>
 
-        {/* Board & Piece Variations with Previews and Google Ad Unlocks */}
+        {/* Board & Piece Variations with Customized Dropdowns & Lock Icons */}
         <div className="form-row">
-          <label>
-            <div className="label-with-ad-row">
-              <span className="label-text-with-lock">
-                Board Theme
-                {!isCurrentBoardUnlocked && <Lock size={12} className="lock-icon-gold" />}
-              </span>
-              {!isCurrentBoardUnlocked && (
-                <button
-                  type="button"
-                  className="unlock-ad-pill"
-                  onClick={() =>
-                    setAdModalItem({
-                      type: "board",
-                      id: board,
-                      label: THEMES[board]?.label || board
-                    })
-                  }
-                >
-                  <Lock size={11} /> Watch Ad (24h)
-                </button>
-              )}
-            </div>
-            <div className="theme-select-wrapper">
-              <select value={board} onChange={(e) => handleBoardChange(e.target.value)}>
-                {Object.keys(THEMES).map((key) => {
-                  const unlocked = isVariationUnlocked("board", key);
-                  const rem = getRemainingTimeString("board", key);
-                  return (
-                    <option key={key} value={key}>
-                      {THEMES[key].label} {!unlocked ? " (Locked)" : rem ? ` (${rem})` : ""}
-                    </option>
-                  );
-                })}
-              </select>
-              {/* Mini Color Swatch */}
-              <div className="theme-mini-swatch" title="Theme Preview">
-                <span style={{ background: THEMES[board]?.light || "#eeeed2" }} />
-                <span style={{ background: THEMES[board]?.dark || "#769656" }} />
-              </div>
-            </div>
-          </label>
+          <CustomVariantSelect
+            label="Board Theme"
+            type="board"
+            value={board}
+            options={boardOptions}
+            onChange={(newBoardId) => {
+              setBoard(newBoardId);
+              setSettings?.({ ...settings, board: newBoardId });
+            }}
+            onSelectLocked={(item) => setAdModalItem(item)}
+          />
 
-          <label>
-            <div className="label-with-ad-row">
-              <span className="label-text-with-lock">
-                Piece Style
-                {!isCurrentPieceUnlocked && <Lock size={12} className="lock-icon-gold" />}
-              </span>
-              {!isCurrentPieceUnlocked && (
-                <button
-                  type="button"
-                  className="unlock-ad-pill"
-                  onClick={() => {
-                    const pObj = PIECE_STYLES.find((s) => s.id === piece);
-                    setAdModalItem({
-                      type: "piece",
-                      id: piece,
-                      label: pObj?.label || piece
-                    });
-                  }}
-                >
-                  <Lock size={11} /> Watch Ad (24h)
-                </button>
-              )}
-            </div>
-            <div className="piece-select-wrapper">
-              <select value={piece} onChange={(e) => handlePieceChange(e.target.value)}>
-                {PIECE_STYLES.map((s) => {
-                  const unlocked = isVariationUnlocked("piece", s.id);
-                  const rem = getRemainingTimeString("piece", s.id);
-                  return (
-                    <option key={s.id} value={s.id}>
-                      {s.label} {!unlocked ? " (Locked)" : rem ? ` (${rem})` : ""}
-                    </option>
-                  );
-                })}
-              </select>
-              <div className="piece-mini-preview" title="Piece Preview">
-                <PieceIcon piece="n" color="w" style={piece} size="24px" />
-                <PieceIcon piece="n" color="b" style={piece} size="24px" />
-              </div>
-            </div>
-          </label>
+          <CustomVariantSelect
+            label="Piece Style"
+            type="piece"
+            value={piece}
+            options={pieceOptions}
+            onChange={(newPieceId) => {
+              setPiece(newPieceId);
+              setSettings?.({ ...settings, piece: newPieceId });
+            }}
+            onSelectLocked={(item) => setAdModalItem(item)}
+          />
         </div>
 
         {/* Start Action */}

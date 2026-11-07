@@ -6,6 +6,7 @@ import PlayerBar from "./PlayerBar";
 import MoveHistory from "./MoveHistory";
 import GameOverModal from "./GameOverModal";
 import GoogleAdModal from "../Ads/GoogleAdModal";
+import CustomVariantSelect from "../Common/CustomVariantSelect";
 import { THEMES } from "../../constants/themes";
 import { PIECE_STYLES } from "../../constants/pieces";
 import { sounds } from "../../utils/sound";
@@ -71,6 +72,27 @@ export default function GameView({
 
   // Bot State
   const [isBotThinking, setIsBotThinking] = useState(false);
+
+  const boardOptions = useMemo(
+    () =>
+      Object.keys(THEMES).map((key) => ({
+        id: key,
+        label: THEMES[key].label,
+        light: THEMES[key].light,
+        dark: THEMES[key].dark
+      })),
+    []
+  );
+
+  const pieceOptions = useMemo(
+    () =>
+      PIECE_STYLES.map((s) => ({
+        id: s.id,
+        label: s.label,
+        desc: s.desc
+      })),
+    []
+  );
 
   // Sound, Eval bar & Board customizer
   const [soundEnabled, setSoundEnabled] = useState(settings?.sound ?? true);
@@ -739,7 +761,7 @@ export default function GameView({
             />
           </div>
 
-          {/* Live Customization Card (Board & Piece variations with Ad unlock) */}
+          {/* Live Customization Card (Board & Piece variations with Customized Dropdowns) */}
           <div className="sidebar-section-card theme-selector-card">
             <div className="card-title-row">
               <Palette size={14} />
@@ -747,64 +769,31 @@ export default function GameView({
             </div>
 
             <div className="customizer-row">
-              <label>Board</label>
-              <select
+              <CustomVariantSelect
+                label="Board"
+                type="board"
                 value={boardTheme}
-                onChange={(e) => {
-                  const bId = e.target.value;
-                  if (!isVariationUnlocked("board", bId)) {
-                    setAdModalItem({
-                      type: "board",
-                      id: bId,
-                      label: THEMES[bId]?.label || bId
-                    });
-                    return;
-                  }
+                options={boardOptions}
+                onChange={(bId) => {
                   setBoardTheme(bId);
                   setSettings?.({ ...settings, board: bId });
                 }}
-              >
-                {Object.keys(THEMES).map((k) => {
-                  const unlocked = isVariationUnlocked("board", k);
-                  const tag = unlocked ? "" : " (Locked)";
-                  return (
-                    <option key={k} value={k}>
-                      {THEMES[k].label}{tag}
-                    </option>
-                  );
-                })}
-              </select>
+                onSelectLocked={(item) => setAdModalItem(item)}
+              />
             </div>
 
             <div className="customizer-row">
-              <label>Piece</label>
-              <select
+              <CustomVariantSelect
+                label="Piece"
+                type="piece"
                 value={pieceStyle}
-                onChange={(e) => {
-                  const pId = e.target.value;
-                  if (!isVariationUnlocked("piece", pId)) {
-                    const pObj = PIECE_STYLES.find((s) => s.id === pId);
-                    setAdModalItem({
-                      type: "piece",
-                      id: pId,
-                      label: pObj?.label || pId
-                    });
-                    return;
-                  }
+                options={pieceOptions}
+                onChange={(pId) => {
                   setPieceStyle(pId);
                   setSettings?.({ ...settings, piece: pId });
                 }}
-              >
-                {PIECE_STYLES.map((s) => {
-                  const unlocked = isVariationUnlocked("piece", s.id);
-                  const tag = unlocked ? "" : " (Locked)";
-                  return (
-                    <option key={s.id} value={s.id}>
-                      {s.label}{tag}
-                    </option>
-                  );
-                })}
-              </select>
+                onSelectLocked={(item) => setAdModalItem(item)}
+              />
             </div>
           </div>
         </aside>

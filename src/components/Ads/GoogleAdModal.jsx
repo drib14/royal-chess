@@ -1,179 +1,285 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { X, Play, CheckCircle2, Sparkles, ExternalLink, ShieldCheck, Crown, AlertCircle } from "lucide-react";
+import { X, CheckCircle2, Sparkles, ShieldCheck, Lock, AlertCircle, Loader2 } from "lucide-react";
 import { unlockVariationForOneDay } from "../../utils/adUnlockManager";
 
 export default function GoogleAdModal({ item, onClose, onUnlocked }) {
   if (!item) return null;
 
-  const [adState, setAdState] = useState("ready"); // "ready" | "playing" | "rewarded"
-  const [countdown, setCountdown] = useState(5);
-  const adRef = useRef(null);
+  // Retrieve credentials strictly from environment variables without hardcoded fallbacks
+  const clientId = import.meta.env.VITE_GOOGLE_ADSENSE_CLIENT_ID;
+  const slotId = import.meta.env.VITE_GOOGLE_ADSENSE_SLOT_ID;
+
+  const isLocal =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      import.meta.env.DEV);
+
+  const AD_DURATION = 10; // Mandatory viewing countdown
+  const [countdown, setCountdown] = useState(AD_DURATION);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  const [adLoaded, setAdLoaded] = useState(false);
+  const [adBlocked, setAdBlocked] = useState(false);
+  const [adUnfilled, setAdUnfilled] = useState(false);
+
+  const insRef = useRef(null);
   const adPushedRef = useRef(false);
 
-  // Environment or configured Google Ad credentials
-  const clientId = import.meta.env.VITE_GOOGLE_ADSENSE_CLIENT_ID || "ca-pub-royal-arena";
-  const slotId = import.meta.env.VITE_GOOGLE_ADSENSE_SLOT_ID || "";
-
+  // Dynamically ensure Google AdSense script is in <head> with the environment clientId
   useEffect(() => {
-    let timer;
-    if (adState === "playing") {
-      // Initialize real Google Ads tag if available on window
+    if (!clientId) return;
+
+    if (typeof window !== "undefined") {
+      let script = document.querySelector('script[src*="adsbygoogle.js"]');
+      if (!script) {
+        script = document.createElement("script");
+        script.async = true;
+        script.crossOrigin = "anonymous";
+        script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`;
+        document.head.appendChild(script);
+      }
+    }
+  }, [clientId]);
+
+  // Request actual ad from Google AdSense into the <ins> slot
+  useEffect(() => {
+    if (!clientId || !slotId) {
+      setIsFetching(false);
+      return;
+    }
+
+    const insElement = insRef.current;
+    if (!insElement) return;
+
+    // Observe changes to <ins> (AdSense injects an iframe when it fetches the ad)
+    const observer = new MutationObserver(() => {
+      if (insElement.querySelector("iframe")) {
+        setIsFetching(false);
+        setAdLoaded(true);
+      }
+      const status = insElement.getAttribute("data-ad-status");
+      if (status === "unfilled") {
+        setIsFetching(false);
+        setAdUnfilled(true);
+      }
+    });
+
+    observer.observe(insElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-ad-status", "data-adsbygoogle-status"]
+    });
+
+    // Push ad request to Google AdSense
+    const pushTimer = setTimeout(() => {
       if (!adPushedRef.current) {
         try {
-          if (typeof window !== "undefined" && window.adsbygoogle) {
+          if (typeof window !== "undefined") {
+            window.adsbygoogle = window.adsbygoogle || [];
             window.adsbygoogle.push({});
             adPushedRef.current = true;
           }
         } catch (err) {
-          console.warn("Google AdSense load notice:", err);
+          console.warn("Google AdSense request notice:", err);
+          setAdBlocked(true);
+          setIsFetching(false);
         }
       }
+    }, 120);
 
-      timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setAdState("rewarded");
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    // Safety timeout: detect if ad blocker prevented script/iframe
+    const blockerTimeout = setTimeout(() => {
+      if (!insElement.querySelector("iframe") && isFetching) {
+        // If adsbygoogle is missing or script was blocked by client
+        if (typeof window === "undefined" || !window.adsbygoogle) {
+          setAdBlocked(true);
+        }
+        setIsFetching(false);
+      }
+    }, 3500);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(pushTimer);
+      clearTimeout(blockerTimeout);
+    };
+  }, [clientId, slotId]);
+
+  // Countdown timer for watching the ad
+  useEffect(() => {
+    if (isCompleted) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setIsCompleted(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => clearInterval(timer);
-  }, [adState]);
+  }, [isCompleted]);
 
-  const handleStartAd = () => {
-    setAdState("playing");
-    setCountdown(5);
-  };
-
-  const handleClaimReward = () => {
+  const handleClaim = () => {
+    if (!isCompleted) return;
     unlockVariationForOneDay(item.type, item.id);
     onUnlocked?.(item.type, item.id);
-    onClose();
+    onClose?.();
   };
 
+  const progressPercent = ((AD_DURATION - countdown) / AD_DURATION) * 100;
+
   return (
-    <div className="modal-backdrop" onClick={adState === "playing" ? null : onClose}>
+    <div className="modal-backdrop" onClick={isCompleted ? onClose : null}>
       <motion.div
         className="google-ad-modal"
         onClick={(e) => e.stopPropagation()}
-        initial={{ scale: 0.9, opacity: 0, y: 15 }}
+        initial={{ scale: 0.92, opacity: 0, y: 15 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0 }}
+        exit={{ scale: 0.92, opacity: 0 }}
       >
-        {/* Google Ad Topbar */}
+        {/* Top bar with Google Ads branding and Close button */}
         <div className="google-ad-topbar">
           <div className="google-ad-badge">
             <span className="google-g">G</span>
-            <span>Google Ads</span>
-            <span className="ad-pill">Ad</span>
+            <span>Google AdSense</span>
+            <span className="ad-pill">Live Ad</span>
           </div>
-          {adState !== "playing" && (
-            <button type="button" className="google-ad-close" onClick={onClose} title="Close">
-              <X size={16} />
-            </button>
-          )}
+
+          <button
+            type="button"
+            className="google-ad-close"
+            onClick={onClose}
+            title={isCompleted ? "Close" : "Cancel"}
+          >
+            <X size={16} />
+          </button>
         </div>
 
-        {/* Modal Body */}
+        {/* Modal Content */}
         <div className="google-ad-body">
-          {adState === "ready" && (
-            <div className="ad-prompt-card">
-              <div className="ad-prompt-icon">
-                <Crown size={28} className="gold" />
-              </div>
-              <span className="eyebrow">REWARDED VARIANT PASS</span>
-              <h2>Unlock {item.label}</h2>
-              <p>
-                Watch a short 5-second sponsored Google Ad to unlock this premium {item.type === "board" ? "board theme" : "piece set"} for <b>24 hours (1 full day)</b>.
-              </p>
+          {/* Header Description */}
+          <div className="google-ad-header-info">
+            <div className="unlock-target-row">
+              <span className="unlock-target-tag">24H UNLOCK PASS</span>
+              <span className="unlock-target-item">{item.label}</span>
+            </div>
+            <p className="google-ad-subtitle">
+              Watch this Google Ad to unlock <b>{item.label}</b> for 24 hours.
+            </p>
+          </div>
 
-              <div className="ad-reward-details">
-                <div className="ad-perk-row">
-                  <ShieldCheck size={16} className="text-green" />
-                  <span>Free 24h instant access on all matches</span>
-                </div>
-                <div className="ad-perk-row">
-                  <ShieldCheck size={16} className="text-green" />
-                  <span>No login required · Stored on your device</span>
-                </div>
-              </div>
+          {/* Ad Container Box hosting the actual Google AdSense unit */}
+          <div className="google-ad-placement-box">
+            <div className="ad-box-header">
+              <span className="ad-box-status">
+                {isCompleted ? (
+                  <span className="ad-status-done">
+                    <CheckCircle2 size={13} className="text-green" /> Ad Finished
+                  </span>
+                ) : (
+                  <span className="ad-status-live">
+                    <span className="live-dot-pulse" /> Sponsored Ad ({countdown}s)
+                  </span>
+                )}
+              </span>
+              <span className="ad-meta-id">
+                {adLoaded ? "Ad Delivered" : isFetching ? "Fetching..." : "AdSense"}
+              </span>
+            </div>
 
-              <button type="button" className="btn btn-primary btn-wide" onClick={handleStartAd}>
-                <Play size={16} fill="currentColor" /> Watch Google Ad (5s)
+            {/* Viewport for Google AdSense <ins> Element */}
+            <div className="ad-canvas-viewport">
+              {/* Fetching state spinner */}
+              {isFetching && (
+                <div className="ad-fetching-layer">
+                  <Loader2 size={24} className="spin-loader text-gold" />
+                  <span>Fetching live ad from Google AdSense...</span>
+                </div>
+              )}
+
+              {/* Ad blocker or configuration notice */}
+              {!clientId || !slotId ? (
+                <div className="ad-blocked-layer">
+                  <AlertCircle size={22} className="text-gold" />
+                  <span>
+                    Missing AdSense configuration in <code>.env</code>.
+                  </span>
+                </div>
+              ) : adBlocked ? (
+                <div className="ad-blocked-layer">
+                  <AlertCircle size={22} className="text-gold" />
+                  <span>Ad blocker detected. Please pause it to load Google AdSense.</span>
+                </div>
+              ) : null}
+
+              {/* Actual Google AdSense element */}
+              {clientId && slotId && (
+                <ins
+                  ref={insRef}
+                  className="adsbygoogle"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    minHeight: "250px",
+                    height: "250px"
+                  }}
+                  data-ad-client={clientId}
+                  data-ad-slot={slotId}
+                  data-ad-format="rectangle,horizontal"
+                  data-full-width-responsive="true"
+                  {...(isLocal ? { "data-adtest": "on" } : {})}
+                />
+              )}
+            </div>
+
+            {/* Progress Bar */}
+            <div className="ad-progress-track">
+              <div
+                className="ad-progress-fill"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Perks list */}
+          <div className="ad-reward-details">
+            <div className="ad-perk-row">
+              <ShieldCheck size={14} className="text-green" />
+              <span>Free 24 hours full access on all game modes</span>
+            </div>
+            <div className="ad-perk-row">
+              <ShieldCheck size={14} className="text-green" />
+              <span>Instant auto-equip upon claiming reward</span>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <div className="google-ad-actions">
+            {isCompleted ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-wide btn-reward-claim"
+                onClick={handleClaim}
+              >
+                <Sparkles size={16} /> Claim 24h Pass & Equip
               </button>
-            </div>
-          )}
-
-          {adState === "playing" && (
-            <div className="ad-player-card">
-              <div className="ad-screen">
-                <div className="ad-sponsored-banner">
-                  <span className="sponsor-tag">Sponsored · Google Ads</span>
-                  <span className="ad-countdown">Reward in {countdown}s</span>
-                </div>
-
-                {/* Actual Google AdSense Placement */}
-                <div className="ad-container-slot" ref={adRef}>
-                  {slotId ? (
-                    <ins
-                      className="adsbygoogle"
-                      style={{ display: "block", width: "100%", height: "180px" }}
-                      data-ad-client={clientId}
-                      data-ad-slot={slotId}
-                      data-ad-format="auto"
-                      data-full-width-responsive="true"
-                    />
-                  ) : (
-                    /* Fallback creative showcase when slot is pending user credentials */
-                    <div className="ad-creative-content">
-                      <div className="ad-logo-mock">
-                        <Crown size={34} className="gold" />
-                      </div>
-                      <h3>Royal Arena Grand Championship</h3>
-                      <p>Experience real-time competitive chess with master tactical bots and official time controls.</p>
-                      <a
-                        href="#"
-                        onClick={(e) => e.preventDefault()}
-                        className="ad-learn-more"
-                      >
-                        Sponsored by Google Ads <ExternalLink size={12} />
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                {/* Progress bar */}
-                <div className="ad-progress-track">
-                  <div
-                    className="ad-progress-fill"
-                    style={{ width: `${((5 - countdown) / 5) * 100}%` }}
-                  />
-                </div>
-              </div>
-              <small className="ad-note">Please watch until the countdown completes to claim your 24h pass.</small>
-            </div>
-          )}
-
-          {adState === "rewarded" && (
-            <div className="ad-rewarded-card">
-              <div className="ad-success-icon">
-                <CheckCircle2 size={38} className="text-green" />
-              </div>
-              <span className="live-tag">● REWARD EARNED</span>
-              <h2>Access Granted!</h2>
-              <p>
-                You have unlocked <b>{item.label}</b> for the next <b>24 hours</b>.
-              </p>
-
-              <button type="button" className="btn btn-primary btn-wide" onClick={handleClaimReward}>
-                Apply & Use for 24 Hours
+            ) : (
+              <button
+                type="button"
+                className="btn btn-secondary btn-wide btn-reward-locked"
+                disabled
+              >
+                <Lock size={15} /> Watching Google Ad ({countdown}s)
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </motion.div>
     </div>
