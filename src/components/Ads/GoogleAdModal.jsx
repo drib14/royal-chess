@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { X, Play, CheckCircle2, Sparkles, ExternalLink, ShieldCheck } from "lucide-react";
+import { X, Play, CheckCircle2, Sparkles, ExternalLink, ShieldCheck, Crown, AlertCircle } from "lucide-react";
 import { unlockVariationForOneDay } from "../../utils/adUnlockManager";
 
 export default function GoogleAdModal({ item, onClose, onUnlocked }) {
@@ -8,10 +8,28 @@ export default function GoogleAdModal({ item, onClose, onUnlocked }) {
 
   const [adState, setAdState] = useState("ready"); // "ready" | "playing" | "rewarded"
   const [countdown, setCountdown] = useState(5);
+  const adRef = useRef(null);
+  const adPushedRef = useRef(false);
+
+  // Environment or configured Google Ad credentials
+  const clientId = import.meta.env.VITE_GOOGLE_ADSENSE_CLIENT_ID || "ca-pub-royal-arena";
+  const slotId = import.meta.env.VITE_GOOGLE_ADSENSE_SLOT_ID || "";
 
   useEffect(() => {
     let timer;
     if (adState === "playing") {
+      // Initialize real Google Ads tag if available on window
+      if (!adPushedRef.current) {
+        try {
+          if (typeof window !== "undefined" && window.adsbygoogle) {
+            window.adsbygoogle.push({});
+            adPushedRef.current = true;
+          }
+        } catch (err) {
+          console.warn("Google AdSense load notice:", err);
+        }
+      }
+
       timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
@@ -54,7 +72,7 @@ export default function GoogleAdModal({ item, onClose, onUnlocked }) {
             <span className="ad-pill">Ad</span>
           </div>
           {adState !== "playing" && (
-            <button type="button" className="google-ad-close" onClick={onClose}>
+            <button type="button" className="google-ad-close" onClick={onClose} title="Close">
               <X size={16} />
             </button>
           )}
@@ -65,9 +83,9 @@ export default function GoogleAdModal({ item, onClose, onUnlocked }) {
           {adState === "ready" && (
             <div className="ad-prompt-card">
               <div className="ad-prompt-icon">
-                <Sparkles size={28} className="gold" />
+                <Crown size={28} className="gold" />
               </div>
-              <span className="eyebrow">REWARDED VARIATION PASS</span>
+              <span className="eyebrow">REWARDED VARIANT PASS</span>
               <h2>Unlock {item.label}</h2>
               <p>
                 Watch a short 5-second sponsored Google Ad to unlock this premium {item.type === "board" ? "board theme" : "piece set"} for <b>24 hours (1 full day)</b>.
@@ -76,11 +94,11 @@ export default function GoogleAdModal({ item, onClose, onUnlocked }) {
               <div className="ad-reward-details">
                 <div className="ad-perk-row">
                   <ShieldCheck size={16} className="text-green" />
-                  <span>Free 24h instant access on all your matches</span>
+                  <span>Free 24h instant access on all matches</span>
                 </div>
                 <div className="ad-perk-row">
                   <ShieldCheck size={16} className="text-green" />
-                  <span>No login required · Stored on this device</span>
+                  <span>No login required · Stored on your device</span>
                 </div>
               </div>
 
@@ -94,21 +112,38 @@ export default function GoogleAdModal({ item, onClose, onUnlocked }) {
             <div className="ad-player-card">
               <div className="ad-screen">
                 <div className="ad-sponsored-banner">
-                  <span className="sponsor-tag">Sponsored · Google Ads Showcase</span>
+                  <span className="sponsor-tag">Sponsored · Google Ads</span>
                   <span className="ad-countdown">Reward in {countdown}s</span>
                 </div>
 
-                <div className="ad-creative-content">
-                  <div className="ad-logo-mock">♟</div>
-                  <h3>Royal Arena Grand Championship</h3>
-                  <p>Elevate your strategy. Play, compete, and climb the arena ranks.</p>
-                  <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                    className="ad-learn-more"
-                  >
-                    Learn More <ExternalLink size={12} />
-                  </a>
+                {/* Actual Google AdSense Placement */}
+                <div className="ad-container-slot" ref={adRef}>
+                  {slotId ? (
+                    <ins
+                      className="adsbygoogle"
+                      style={{ display: "block", width: "100%", height: "180px" }}
+                      data-ad-client={clientId}
+                      data-ad-slot={slotId}
+                      data-ad-format="auto"
+                      data-full-width-responsive="true"
+                    />
+                  ) : (
+                    /* Fallback creative showcase when slot is pending user credentials */
+                    <div className="ad-creative-content">
+                      <div className="ad-logo-mock">
+                        <Crown size={34} className="gold" />
+                      </div>
+                      <h3>Royal Arena Grand Championship</h3>
+                      <p>Experience real-time competitive chess with master tactical bots and official time controls.</p>
+                      <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="ad-learn-more"
+                      >
+                        Sponsored by Google Ads <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 {/* Progress bar */}
@@ -144,4 +179,3 @@ export default function GoogleAdModal({ item, onClose, onUnlocked }) {
     </div>
   );
 }
-

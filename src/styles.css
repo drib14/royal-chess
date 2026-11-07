@@ -2258,3 +2258,307 @@ footer span {
   font-size: 11px;
   color: var(--muted);
 }
+
+/* BRAND MARK & ICON STYLING */
+.brand-mark-icon {
+  filter: drop-shadow(0 0 8px rgba(217, 182, 110, 0.4));
+}
+
+.color-indicator-circle {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.color-indicator-circle.circle-white {
+  background: #f8fafc;
+  border: 1px solid #94a3b8;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+.color-indicator-circle.circle-black {
+  background: #18181b;
+  border: 1px solid #d9b66e;
+  box-shadow: 0 0 6px rgba(217, 182, 110, 0.3);
+}
+
+.lock-icon-gold {
+  color: var(--gold);
+}
+
+.label-text-with-lock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* DISABLED FIELD STYLING */
+.field-disabled {
+  opacity: 0.55;
+}
+
+.field-disabled select {
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-color: #333 !important;
+  color: #666 !important;
+}
+
+.label-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.field-disabled-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* 8 BALL POOL STYLE ONLINE ROULETTE */
+.roulette-backdrop {
+  background: radial-gradient(circle at 50% 50%, rgba(30, 27, 22, 0.95) 0%, rgba(10, 9, 8, 0.98) 100%);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+}
+
+.roulette-container {
+  width: min(640px, 95vw);
+  background: linear-gradient(145deg, #22201c, #171613);
+  border: 2px solid #3c3830;
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.9), 0 0 40px rgba(217, 182, 110, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.roulette-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+.roulette-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+}
+
+.status-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-pulse-dot.pulse-searching {
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  animation: pulseSearching 0.8s infinite alternate;
+}
+
+.status-pulse-dot.pulse-ready {
+  background: #22c55e;
+  box-shadow: 0 0 12px #22c55e;
+}
+
+@keyframes pulseSearching {
+  from { opacity: 0.4; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1.3); }
+}
+
+.roulette-time-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.roulette-clash-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.roulette-player-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.roulette-player-card.self-card {
+  border-color: rgba(217, 182, 110, 0.4);
+  background: linear-gradient(180deg, rgba(217, 182, 110, 0.05), transparent);
+}
+
+.roulette-player-card.opponent-locked {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(217, 182, 110, 0.12), transparent);
+  box-shadow: 0 0 30px rgba(217, 182, 110, 0.25);
+  transform: scale(1.02);
+}
+
+.roulette-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #272522;
+  border: 3px solid var(--gold);
+  position: relative;
+}
+
+.roulette-avatar .avatar-letter {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.avatar-glow-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+
+.roulette-username {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  min-height: 28px;
+}
+
+.name-spinning {
+  color: #cbd5e1;
+  animation: blurTick 0.1s infinite;
+}
+
+@keyframes blurTick {
+  0% { transform: translateY(-2px); opacity: 0.8; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.name-locked {
+  color: var(--gold);
+  font-size: 22px;
+}
+
+.roulette-points {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.roulette-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  letter-spacing: 1px;
+}
+
+.self-badge {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.opp-badge-spinning {
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.opp-badge-locked {
+  background: rgba(217, 182, 110, 0.2);
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  animation: pulseFound 0.6s infinite alternate;
+}
+
+@keyframes pulseFound {
+  from { transform: scale(0.96); }
+  to { transform: scale(1.04); }
+}
+
+/* VS EMBLEM CENTER */
+.roulette-vs-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.vs-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #171613;
+  border: 2px solid var(--line);
+  display: grid;
+  place-items: center;
+  transition: all 0.3s;
+}
+
+.vs-circle.vs-clash {
+  border-color: var(--gold);
+  box-shadow: 0 0 25px rgba(217, 182, 110, 0.4);
+  transform: scale(1.15) rotate(15deg);
+}
+
+.vs-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+
+.roulette-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+@media (max-width: 600px) {
+  .roulette-clash-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .roulette-vs-center {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+

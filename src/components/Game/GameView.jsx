@@ -522,10 +522,13 @@ export default function GameView({
     if (config.mode === "online") {
       return onlineOpponent?.username || "Opponent";
     }
+    if (config.opponent) {
+      return config.opponent.username;
+    }
     return isBottomWhite ? "Black" : "White";
-  }, [config.mode, config.level, onlineOpponent, isBottomWhite]);
+  }, [config.mode, config.level, onlineOpponent, config.opponent, isBottomWhite]);
 
-  const topPoints = config.mode === "online" ? onlineOpponent?.points || 0 : 0;
+  const topPoints = config.mode === "online" ? onlineOpponent?.points || 0 : (config.opponent?.points || 0);
   const bottomName = user?.username || (config.mode === "local" ? (isBottomWhite ? "White" : "Black") : "You");
   const bottomPoints = user?.points || 0;
 
@@ -763,10 +766,10 @@ export default function GameView({
               >
                 {Object.keys(THEMES).map((k) => {
                   const unlocked = isVariationUnlocked("board", k);
-                  const tag = unlocked ? "" : " [🔒 Watch Ad]";
+                  const tag = unlocked ? "" : " (Locked)";
                   return (
                     <option key={k} value={k}>
-                      {THEMES[k].label} {tag}
+                      {THEMES[k].label}{tag}
                     </option>
                   );
                 })}
@@ -794,10 +797,10 @@ export default function GameView({
               >
                 {PIECE_STYLES.map((s) => {
                   const unlocked = isVariationUnlocked("piece", s.id);
-                  const tag = unlocked ? "" : " [🔒 Watch Ad]";
+                  const tag = unlocked ? "" : " (Locked)";
                   return (
                     <option key={s.id} value={s.id}>
-                      {s.label} {tag}
+                      {s.label}{tag}
                     </option>
                   );
                 })}

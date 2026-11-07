@@ -28,9 +28,10 @@ export default function PlayerBar({
         </div>
         <div className="player-meta-text">
           <div className="player-name-row">
-            <span className="player-color-dot" title={isWhite ? "Playing White" : "Playing Black"}>
-              {isWhite ? "♙" : "♟"}
-            </span>
+            <span
+              className={`color-indicator-circle ${isWhite ? "circle-white" : "circle-black"}`}
+              title={isWhite ? "White Pieces" : "Black Pieces"}
+            />
             <b className="player-name">{name}</b>
             {!isComputer && (
               <span className="player-points-tag">{points || 0} pts</span>

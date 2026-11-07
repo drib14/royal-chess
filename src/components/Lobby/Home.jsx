@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Bot, Users, Swords, Play, Trophy, Clock3, Lock, ShieldAlert, Sparkles, Video } from "lucide-react";
+import { Bot, Users, Swords, Play, Trophy, Clock3, Lock, ShieldAlert, Sparkles, Video, CheckCircle2 } from "lucide-react";
 import { THEMES } from "../../constants/themes";
 import { PIECE_STYLES } from "../../constants/pieces";
 import { PRESETS } from "../../constants/presets";
 import PieceIcon from "../Chessboard/PieceIcon";
 import GoogleAdModal from "../Ads/GoogleAdModal";
+import OnlineRoulette from "../Matchmaking/OnlineRoulette";
 import { isVariationUnlocked, getRemainingTimeString } from "../../utils/adUnlockManager";
 
 export default function Home({ onStart, settings, setSettings, onAuth, user, onOpenChallengeSearch }) {
@@ -16,6 +17,7 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
   const [board, setBoard] = useState(settings?.board || "Green");
   const [piece, setPiece] = useState(settings?.piece || "Neo");
   const [adModalItem, setAdModalItem] = useState(null); // { type, id, label }
+  const [showRoulette, setShowRoulette] = useState(false);
   const [, setUnlockTick] = useState(0);
 
   // Listen to unlock events across app
@@ -70,12 +72,21 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
       return;
     }
 
+    // Pass & Play launches the 8 Ball Pool style online player roulette
+    if (mode === "local") {
+      setShowRoulette(true);
+      return;
+    }
+
+    launchMatch();
+  };
+
+  const launchMatch = (matchedOpponent = null) => {
     let finalColor = color;
     if (color === "random") {
       finalColor = Math.random() > 0.5 ? "w" : "b";
     }
 
-    // Ensure selected theme/piece is unlocked or fallback to defaults
     const activeBoard = isVariationUnlocked("board", board) ? board : "Green";
     const activePiece = isVariationUnlocked("piece", piece) ? piece : "Neo";
 
@@ -86,7 +97,8 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
       timed,
       preset: currentPreset,
       board: activeBoard,
-      piece: activePiece
+      piece: activePiece,
+      opponent: matchedOpponent
     });
   };
 
@@ -150,7 +162,7 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
         {/* Game Mode Selection */}
         <div className="mode-selection-label">Select Game Mode</div>
         <div className="mode-grid">
-          {/* VS COMPUTER: Always available */}
+          {/* VS COMPUTER */}
           <button
             type="button"
             className={`mode-card ${mode === "computer" ? "selected" : ""}`}
@@ -164,22 +176,26 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
             <small>Practice against adaptive AI</small>
           </button>
 
-          {/* LOCAL PASS & PLAY: Locked for guests */}
+          {/* PASS & PLAY ROULETTE */}
           <button
             type="button"
             className={`mode-card ${mode === "local" ? "selected" : ""} ${!user ? "mode-locked" : ""}`}
             onClick={() => handleModeSelect("local")}
-            title={!user ? "Sign in required to play Local multiplayer" : "Pass and play with a friend"}
+            title={!user ? "Sign in required to play Pass & Play Roulette" : "Player roulette matchmaking"}
           >
             <div className="mode-header">
               <Users size={22} />
-              {!user && <span className="lock-badge"><Lock size={11} /> Locked</span>}
+              {!user && (
+                <span className="lock-badge">
+                  <Lock size={11} /> Locked
+                </span>
+              )}
             </div>
-            <b>Pass & Play</b>
-            <small>{user ? "Two players, one board" : "Sign in to unlock"}</small>
+            <b>Pass & Play Roulette</b>
+            <small>{user ? "Online player roulette wheel" : "Sign in to unlock"}</small>
           </button>
 
-          {/* ONLINE MATCH: Locked for guests */}
+          {/* ONLINE ARENA */}
           <button
             type="button"
             className={`mode-card ${mode === "online" ? "selected" : ""} ${!user ? "mode-locked" : ""}`}
@@ -188,36 +204,48 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
           >
             <div className="mode-header">
               <Swords size={22} />
-              {!user && <span className="lock-badge"><Lock size={11} /> Locked</span>}
+              {!user && (
+                <span className="lock-badge">
+                  <Lock size={11} /> Locked
+                </span>
+              )}
             </div>
             <b>Online Points Match</b>
             <small>{user ? "Quick match & challenges" : "Sign in to unlock"}</small>
           </button>
         </div>
 
-        {/* Form Options */}
+        {/* Form Options: Bot Difficulty is strictly disabled for non-bot modes */}
         <div className="form-row">
-          {mode === "computer" ? (
-            <label>
-              Bot Difficulty
-              <select value={level} onChange={(e) => setLevel(e.target.value)}>
-                <option value="Beginner">Beginner (Novice)</option>
-                <option value="Intermediate">Intermediate (Standard)</option>
-                <option value="Advanced">Advanced (Tactical)</option>
-                <option value="Expert">Expert (Grandmaster)</option>
-              </select>
-            </label>
-          ) : (
-            <label>
-              Play As
-              <select value={color} onChange={(e) => setColor(e.target.value)}>
-                <option value="w">White (First Move)</option>
-                <option value="b">Black</option>
-                <option value="random">Random Color</option>
-              </select>
-            </label>
-          )}
+          <label className={mode !== "computer" ? "field-disabled" : ""}>
+            <div className="label-title-row">
+              <span>Bot Difficulty</span>
+              {mode !== "computer" && <span className="field-disabled-tag">Disabled (Only for Bots)</span>}
+            </div>
+            <select
+              value={level}
+              disabled={mode !== "computer"}
+              onChange={(e) => setLevel(e.target.value)}
+              title={mode !== "computer" ? "Bot difficulty is only applicable when playing Vs Computer" : "Select difficulty"}
+            >
+              <option value="Beginner">Beginner (Novice)</option>
+              <option value="Intermediate">Intermediate (Standard)</option>
+              <option value="Advanced">Advanced (Tactical)</option>
+              <option value="Expert">Expert (Grandmaster)</option>
+            </select>
+          </label>
 
+          <label>
+            Play As
+            <select value={color} onChange={(e) => setColor(e.target.value)}>
+              <option value="w">White (First Move)</option>
+              <option value="b">Black</option>
+              <option value="random">Random Color</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="form-row">
           <label>
             Time Control
             <select
@@ -239,13 +267,18 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
               ))}
             </select>
           </label>
+
+          <div className="empty-field-slot" />
         </div>
 
         {/* Board & Piece Variations with Previews and Google Ad Unlocks */}
         <div className="form-row">
           <label>
             <div className="label-with-ad-row">
-              <span>Board Theme</span>
+              <span className="label-text-with-lock">
+                Board Theme
+                {!isCurrentBoardUnlocked && <Lock size={12} className="lock-icon-gold" />}
+              </span>
               {!isCurrentBoardUnlocked && (
                 <button
                   type="button"
@@ -258,7 +291,7 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
                     })
                   }
                 >
-                  <Video size={11} /> Watch Ad (24h)
+                  <Lock size={11} /> Watch Ad (24h)
                 </button>
               )}
             </div>
@@ -267,10 +300,9 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
                 {Object.keys(THEMES).map((key) => {
                   const unlocked = isVariationUnlocked("board", key);
                   const rem = getRemainingTimeString("board", key);
-                  const tag = unlocked ? (rem ? ` [⚡ ${rem}]` : " [Free]") : " [🔒 Watch Ad]";
                   return (
                     <option key={key} value={key}>
-                      {THEMES[key].label} {tag}
+                      {THEMES[key].label} {!unlocked ? " (Locked)" : rem ? ` (${rem})` : ""}
                     </option>
                   );
                 })}
@@ -285,7 +317,10 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
 
           <label>
             <div className="label-with-ad-row">
-              <span>Piece Style</span>
+              <span className="label-text-with-lock">
+                Piece Style
+                {!isCurrentPieceUnlocked && <Lock size={12} className="lock-icon-gold" />}
+              </span>
               {!isCurrentPieceUnlocked && (
                 <button
                   type="button"
@@ -299,7 +334,7 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
                     });
                   }}
                 >
-                  <Video size={11} /> Watch Ad (24h)
+                  <Lock size={11} /> Watch Ad (24h)
                 </button>
               )}
             </div>
@@ -308,10 +343,9 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
                 {PIECE_STYLES.map((s) => {
                   const unlocked = isVariationUnlocked("piece", s.id);
                   const rem = getRemainingTimeString("piece", s.id);
-                  const tag = unlocked ? (rem ? ` [⚡ ${rem}]` : " [Free]") : " [🔒 Watch Ad]";
                   return (
                     <option key={s.id} value={s.id}>
-                      {s.label} {tag}
+                      {s.label} {!unlocked ? " (Locked)" : rem ? ` (${rem})` : ""}
                     </option>
                   );
                 })}
@@ -334,7 +368,7 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
               ? "Sign in to Play"
               : mode === "online"
               ? "Find Quick Match"
-              : "Start Pass & Play"}
+              : "Spin Roulette & Play"}
           </button>
 
           {user && mode === "online" && (
@@ -368,6 +402,19 @@ export default function Home({ onStart, settings, setSettings, onAuth, user, onO
           <span>Target rings for captures, smooth move dots, and check indicators.</span>
         </div>
       </section>
+
+      {/* 8 Ball Pool Style Online Player Roulette */}
+      {showRoulette && (
+        <OnlineRoulette
+          user={user}
+          timeControl={timed ? currentPreset : null}
+          onMatchFound={(opponent) => {
+            setShowRoulette(false);
+            launchMatch(opponent);
+          }}
+          onCancel={() => setShowRoulette(false)}
+        />
+      )}
 
       {/* Google Ad Rewarded Modal */}
       {adModalItem && (

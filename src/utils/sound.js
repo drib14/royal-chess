@@ -153,6 +153,38 @@ class SoundManager {
           break;
         }
 
+        case "rouletteTick": {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(800, t);
+          osc.frequency.exponentialRampToValueAtTime(300, t + 0.03);
+          gain.gain.setValueAtTime(0.15, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.04);
+          break;
+        }
+
+        case "matchFound": {
+          const freqs = [220, 440, 660, 880];
+          freqs.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, t + i * 0.06);
+            gain.gain.setValueAtTime(0.2, t + i * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t + i * 0.06);
+            osc.stop(t + i * 0.06 + 0.36);
+          });
+          break;
+        }
+
         default:
           break;
       }

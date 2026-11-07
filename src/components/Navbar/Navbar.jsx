@@ -5,7 +5,7 @@ export default function Navbar({ page, setPage, user, onAuth, onLogout }) {
   return (
     <header className="topbar">
       <div className="brand" onClick={() => setPage("home")}>
-        <span className="brand-mark">♞</span>
+        <Crown size={24} className="brand-mark-icon gold" />
         <span>
           ROYAL<span className="gold">ARENA</span>
         </span>
